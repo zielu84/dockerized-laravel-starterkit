@@ -1,0 +1,2 @@
+images/mysql/data/*
+!images/mysql/data/.gitignore

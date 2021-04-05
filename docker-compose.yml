@@ -1,0 +1,77 @@
+version: '3.8'
+
+networks:
+    laravel:
+
+services:
+    app:
+        build:
+            args:
+                user: zielu
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile
+        container_name: LaravelDocker-app
+        restart: unless-stopped
+        volumes:
+            - ./app:/var/www
+        ports:
+            - "9000:9000"
+        networks:
+            - laravel
+
+    nodejs:
+        image: node:latest
+        container_name: LaravelDocker-nodejs
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - ./app:/var/www
+        working_dir: /var/www
+
+    nginx:
+        image: nginx:alpine
+        container_name: LaravelDocker-nginx
+        restart: always
+        ports:
+            - "8888:80"
+        volumes:
+            - ./app:/var/www
+            - ./images/nginx:/etc/nginx/conf.d
+        networks:
+            - laravel
+        depends_on:
+            - app
+            - mysql
+
+    mysql:
+        image: mysql:8
+        container_name: LaravelDocker-mysql
+        restart: unless-stopped
+        tty: true
+        command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+        ports:
+            - "4306:3306"
+        volumes:
+            - ./images/mysql/data:/var/lib/mysql
+            # - ./images/mysql/scripts/db.sql:/docker-entrypoint-initdb.d/1.sql
+            # - ./images/mysql/scripts/users.sql:/docker-entrypoint-initdb.d/2.sql
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+        networks:
+            - laravel
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: LaravelDocker-phpmyadmin
+        ports:
+            - "7000:80"
+        environment:
+            PMA_HOST: mysql
+        networks:
+            - laravel
+        depends_on:
+            - mysql
